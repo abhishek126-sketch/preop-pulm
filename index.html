@@ -31,6 +31,7 @@
   select, input[type=text], input[type=number], textarea {
     width:100%; padding:10px; border:1px solid var(--line); border-radius:10px;
     font-size:15px; background:#fff; }
+  input[readonly] { background:#eef4fb; color:#0b3b66; font-weight:600; }
   textarea { min-height:60px; }
   .check { display:flex; gap:8px; align-items:flex-start; font-weight:500; font-size:14px; margin:6px 0; }
   .check input { margin-top:3px; }
@@ -49,6 +50,9 @@
   .small { font-size:13px; }
   .note { background:#eef4fb; border:1px solid #cfe0f3; color:#0b3b66;
           border-radius:10px; padding:8px 10px; font-size:12.5px; margin:0 0 10px; }
+  .auto-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
+  .ftin { display:flex; gap:6px; }
+  .ftin input { flex:1; }
   .row { display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-bottom:1px dashed #e5e9f0; }
   .row:last-child { border-bottom:0; }
   .k { color:var(--muted); font-size:12.5px; }
@@ -85,7 +89,23 @@
       <div><label>Sex</label>
         <select id="sex"><option value="">—</option><option>Male</option><option>Female</option><option>Other</option></select>
       </div>
-      <div><label>BMI (kg/m²)</label><input type="number" id="bmi" placeholder="e.g. 27.4" step="0.1"></div>
+      <div><label>Weight (kg)</label><input type="number" id="weight" step="0.1" placeholder="e.g. 70" oninput="calcBMI()"></div>
+      <div><label>Height unit</label>
+        <select id="heightUnit" onchange="toggleHeight()">
+          <option value="cm">Centimeters</option>
+          <option value="ftin">Feet + inches</option>
+        </select>
+      </div>
+      <div id="heightCmWrap"><label>Height (cm)</label><input type="number" id="heightCm" step="0.1" placeholder="e.g. 165" oninput="calcBMI()"></div>
+      <div id="heightFtWrap" style="display:none">
+        <label>Height (feet + inches)</label>
+        <div class="ftin">
+          <input type="number" id="heightFt" placeholder="5" step="1" oninput="calcBMI()">
+          <input type="number" id="heightIn" placeholder="6" step="1" oninput="calcBMI()">
+        </div>
+      </div>
+      <div><label>BMI (auto)</label><input type="text" id="bmi" readonly placeholder="—"></div>
+      <div><label>BMI category (auto, Asian cutoffs)</label><input type="text" id="bmiCat" readonly placeholder="—"></div>
       <div><label>Procedure</label><input type="text" id="procedure" placeholder="e.g. elective hernia repair"></div>
       <div><label>Urgency</label>
         <select id="urgency"><option value="0">Elective</option><option value="8">Emergency</option></select>
@@ -104,11 +124,32 @@
 
   <div class="card no-print">
     <h2>2. Comorbidities &amp; history</h2>
+    <h3>Smoking</h3>
     <div class="grid">
-      <div><label>Smoking</label>
-        <select id="smoking"><option value="never">Never</option><option value="former">Former</option><option value="current">Current</option></select>
+      <div><label>Smoking status</label>
+        <select id="smoking" onchange="calcSmokingIndex()">
+          <option value="never">Never</option>
+          <option value="former">Former</option>
+          <option value="current">Current</option>
+        </select>
       </div>
-      <div><label>Pack-years</label><input type="number" id="packyears" placeholder="e.g. 20" step="1"></div>
+      <div><label>Type (if smoker)</label>
+        <select id="smokingType" onchange="calcSmokingIndex()">
+          <option value="">—</option>
+          <option value="cigarette">Cigarette</option>
+          <option value="bidi">Bidi</option>
+          <option value="mixed">Mixed (cigarette + bidi)</option>
+          <option value="other">Other (ganja, etc.)</option>
+        </select>
+      </div>
+      <div><label>Sticks/day (cigarettes/day)</label><input type="number" id="sticksPerDay" step="1" placeholder="e.g. 10" oninput="calcSmokingIndex()"></div>
+      <div><label>Bidis/day (mixed only)</label><input type="number" id="bidisPerDay" step="1" placeholder="e.g. 5" oninput="calcSmokingIndex()"></div>
+      <div><label>Years smoked</label><input type="number" id="yearsSmoked" step="1" placeholder="e.g. 20" oninput="calcSmokingIndex()"></div>
+      <div><label>Smoking index (auto = sticks × years)</label><input type="text" id="smokingIndex" readonly placeholder="—"></div>
+      <div><label>Pack-years (auto, 1 bidi ≈ 0.5 cig)</label><input type="text" id="packYears" readonly placeholder="—"></div>
+    </div>
+    <h3>Other</h3>
+    <div class="grid">
       <div><label>Home oxygen</label>
         <select id="homeo2"><option value="0">No</option><option value="1">Yes</option></select>
       </div>
@@ -180,7 +221,7 @@
     <label class="check"><input type="checkbox" id="sb_tired"> Tiredness / daytime sleepiness</label>
     <label class="check"><input type="checkbox" id="sb_apnea"> Observed apnea / choking / gasping</label>
     <label class="check"><input type="checkbox" id="sb_pressure"> Hypertension</label>
-    <label class="check"><input type="checkbox" id="sb_bmi"> BMI &gt; 35 kg/m²</label>
+    <label class="check"><input type="checkbox" id="sb_bmi"> BMI &gt; 35 kg/m² (auto-checked from Section 1)</label>
     <label class="check"><input type="checkbox" id="sb_age50"> Age &gt; 50 years</label>
     <label class="check"><input type="checkbox" id="sb_neck"> Neck circumference &gt; 40 cm</label>
     <label class="check"><input type="checkbox" id="sb_male"> Male gender</label>
@@ -322,6 +363,68 @@ const intv = id => { const v = parseInt($(id).value, 10); return isNaN(v) ? 0 : 
 const chk = id => $(id).checked ? 1 : 0;
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
+/* ---------- BMI ---------- */
+function toggleHeight() {
+  const u = $("heightUnit").value;
+  $("heightCmWrap").style.display = u === "cm" ? "block" : "none";
+  $("heightFtWrap").style.display = u === "ftin" ? "block" : "none";
+  calcBMI();
+}
+
+function calcBMI() {
+  const w = num("weight");
+  if (!w || w <= 0) { $("bmi").value = ""; $("bmiCat").value = ""; return; }
+  let h = 0;
+  if ($("heightUnit").value === "cm") {
+    h = num("heightCm") || 0;
+  } else {
+    const ft = num("heightFt") || 0;
+    const inch = num("heightIn") || 0;
+    h = (ft * 12 + inch) * 2.54;
+  }
+  if (h <= 0) { $("bmi").value = ""; $("bmiCat").value = ""; return; }
+  const m = h / 100;
+  const bmi = w / (m * m);
+  $("bmi").value = bmi.toFixed(1);
+  let cat = "";
+  if (bmi < 18.5) cat = "Underweight";
+  else if (bmi < 23) cat = "Normal (Asian)";
+  else if (bmi < 25) cat = "Overweight (Asian)";
+  else if (bmi < 30) cat = "Obese I (Asian)";
+  else cat = "Obese II";
+  $("bmiCat").value = cat;
+  if (bmi > 35) $("sb_bmi").checked = true;
+}
+
+/* ---------- Smoking index ---------- */
+function calcSmokingIndex() {
+  const status = $("smoking").value;
+  const type = $("smokingType").value;
+  const sticks = num("sticksPerDay") || 0;
+  const bidis = num("bidisPerDay") || 0;
+  const years = num("yearsSmoked") || 0;
+
+  if (status === "never") {
+    $("smokingIndex").value = "";
+    $("packYears").value = "";
+    return;
+  }
+
+  let totalSticks = sticks;
+  if (type === "mixed") totalSticks = sticks + bidis;
+
+  const si = totalSticks * years;
+  $("smokingIndex").value = si > 0 ? si.toFixed(0) : "";
+
+  let cigEquiv = 0;
+  if (type === "cigarette" || type === "other") cigEquiv = sticks;
+  else if (type === "bidi") cigEquiv = sticks * 0.5;
+  else if (type === "mixed") cigEquiv = sticks + bidis * 0.5;
+
+  const py = (cigEquiv * years) / 20;
+  $("packYears").value = py > 0 ? py.toFixed(1) : "";
+}
+
 /* ---------- Spirometry interpretation ---------- */
 function interpretSpiro() {
   const fev1p = num("fev1p"), fvcp = num("fvcp"), ratio = num("ratio");
@@ -359,14 +462,12 @@ function interpretSpiro() {
   }
 
   let postInfo = "";
-  if (ratiopost !== null) {
-    postInfo = `Post-BD FEV₁/FVC ${ratiopost}%`;
-  }
+  if (ratiopost !== null) postInfo = `Post-BD FEV₁/FVC ${ratiopost}%`;
 
   return { pattern, severity, reversibility, postInfo };
 }
 
-/* ---------- DLCO interpretation ---------- */
+/* ---------- DLCO ---------- */
 function interpretDLCO() {
   const pct = num("dlcoPct");
   if (pct === null) return null;
@@ -378,7 +479,7 @@ function interpretDLCO() {
   return { pct, s };
 }
 
-/* ---------- PEFR interpretation ---------- */
+/* ---------- PEFR ---------- */
 function interpretPEFR() {
   const best = num("pefrBest"), avg = num("pefrAvg"), pred = num("pefrPred"), post = num("pefrPost");
   if (best === null && avg === null) return null;
@@ -399,7 +500,7 @@ function interpretPEFR() {
   return { best, avg, pred, post, pctPred, severity, rev };
 }
 
-/* ---------- Bedside summary ---------- */
+/* ---------- Bedside ---------- */
 function interpretBedside() {
   const notes = [];
   const spo2rest = num("spo2rest"), spo2ex = num("spo2ex");
@@ -419,7 +520,7 @@ function interpretBedside() {
   return notes;
 }
 
-/* ---------- CXR summary ---------- */
+/* ---------- CXR ---------- */
 function interpretCXR() {
   const keys = [
     ["cxr_normal","Normal"],["cxr_hyperinflation","Hyperinflation"],
@@ -442,7 +543,6 @@ function calculate() {
   let agePts = 0;
   if (age > 80) agePts = 16;
   else if (age > 50) agePts = 3;
-  else if (age > 0) agePts = 0;
 
   const rtiPts = parseInt($("rti").value, 10) || 0;
   const spo2Pts = parseInt($("spo2").value, 10) || 0;
@@ -452,29 +552,23 @@ function calculate() {
   const emergencyPts = parseInt($("urgency").value, 10) || 0;
   const ariscat = agePts + rtiPts + spo2Pts + anemiaPts + incisionPts + durationPts + emergencyPts;
 
-  let arClass = "low", arLabel = "Low";
-  if (ariscat >= 45) { arClass = "high"; arLabel = "High"; }
-  else if (ariscat >= 26) { arClass = "mid"; arLabel = "Intermediate"; }
+  let arLabel = "Low";
+  if (ariscat >= 45) arLabel = "High";
+  else if (ariscat >= 26) arLabel = "Intermediate";
 
   /* STOP-BANG */
   const sb = chk("sb_snoring") + chk("sb_tired") + chk("sb_apnea") + chk("sb_pressure")
            + chk("sb_bmi") + chk("sb_age50") + chk("sb_neck") + chk("sb_male");
-  let sbClass = "low", sbLabel = "Low";
-  if (sb >= 5) { sbClass = "high"; sbLabel = "High"; }
-  else if (sb >= 3) { sbClass = "mid"; sbLabel = "Intermediate"; }
+  let sbLabel = "Low";
+  if (sb >= 5) sbLabel = "High";
+  else if (sb >= 3) sbLabel = "Intermediate";
 
   /* Optional tests */
-  const spiroNotDone = chk("spiro_notdone");
-  const dlcoNotDone = chk("dlco_notdone");
-  const pefrNotDone = chk("pefr_notdone");
-  const bedsideNotDone = chk("bedside_notdone");
-  const cxrNotDone = chk("cxr_notdone");
-
-  const spiro = spiroNotDone ? null : interpretSpiro();
-  const dlco = dlcoNotDone ? null : interpretDLCO();
-  const pefr = pefrNotDone ? null : interpretPEFR();
-  const bedside = bedsideNotDone ? [] : interpretBedside();
-  const cxr = cxrNotDone ? [] : interpretCXR();
+  const spiro = chk("spiro_notdone") ? null : interpretSpiro();
+  const dlco = chk("dlco_notdone") ? null : interpretDLCO();
+  const pefr = chk("pefr_notdone") ? null : interpretPEFR();
+  const bedside = chk("bedside_notdone") ? [] : interpretBedside();
+  const cxr = chk("cxr_notdone") ? [] : interpretCXR();
 
   /* Recommendation engine */
   const order = { low: 0, mid: 1, high: 2 };
@@ -545,20 +639,34 @@ function calculate() {
   const pprocedure = $("procedure").value || "—";
   const psex = $("sex").value || "—";
   const pbmi = $("bmi").value || "—";
+  const pbmiCat = $("bmiCat").value || "";
   const panes = $("anes").value;
+  const smokingStatus = $("smoking").value;
+  const smokingType = $("smokingType").value;
+  const si = $("smokingIndex").value;
+  const py = $("packYears").value;
 
   const row = (k, v) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`;
 
   let html = `<div class="print-title">Preoperative Pulmonary Assessment</div>`;
-  html += `<p><strong>Patient:</strong> ${esc(pname)} &nbsp;|&nbsp; <strong>Sex:</strong> ${esc(psex)} &nbsp;|&nbsp; <strong>Age:</strong> ${age || "—"} &nbsp;|&nbsp; <strong>BMI:</strong> ${esc(pbmi)}</p>`;
+  html += `<p><strong>Patient:</strong> ${esc(pname)} &nbsp;|&nbsp; <strong>Sex:</strong> ${esc(psex)} &nbsp;|&nbsp; <strong>Age:</strong> ${age || "—"} &nbsp;|&nbsp; <strong>BMI:</strong> ${esc(pbmi)}${pbmiCat ? " (" + esc(pbmiCat) + ")" : ""}</p>`;
   html += `<p><strong>Date:</strong> ${esc(pdate)} &nbsp;|&nbsp; <strong>Procedure:</strong> ${esc(pprocedure)} &nbsp;|&nbsp; <strong>Anesthesia:</strong> ${esc(panes)}</p>`;
+
+  /* Smoking */
+  if (smokingStatus !== "never") {
+    html += `<h2>Smoking</h2>`;
+    const typeLabel = { cigarette: "Cigarette", bidi: "Bidi", mixed: "Mixed (cigarette + bidi)", other: "Other" }[smokingType] || "—";
+    html += row("Status", smokingStatus.charAt(0).toUpperCase() + smokingStatus.slice(1));
+    if (smokingType) html += row("Type", typeLabel);
+    if (si) html += row("Smoking index", si);
+    if (py) html += row("Pack-years (est.)", py);
+  }
 
   html += `<h2>Risk scores</h2>`;
   html += row("ARISCAT", `${ariscat} / 123 — ${arLabel} risk`);
   html += row("STOP-BANG", `${sb} / 8 — ${sbLabel} OSA risk`);
 
-  /* Spirometry */
-  if (spiroNotDone) {
+  if (chk("spiro_notdone")) {
     html += `<h2>Spirometry</h2>`;
     html += row("Status", "Not performed / not available");
   } else if (spiro) {
@@ -570,8 +678,7 @@ function calculate() {
     if (spiro.postInfo) html += row("Post-BD", spiro.postInfo);
   }
 
-  /* DLCO */
-  if (dlcoNotDone) {
+  if (chk("dlco_notdone")) {
     html += `<h2>DLCO</h2>`;
     html += row("Status", "Not performed / not available");
   } else if (dlco) {
@@ -579,8 +686,7 @@ function calculate() {
     html += row("DLCO % predicted", `${dlco.pct}% — ${dlco.s}`);
   }
 
-  /* PEFR */
-  if (pefrNotDone) {
+  if (chk("pefr_notdone")) {
     html += `<h2>PEFR</h2>`;
     html += row("Status", "Not performed / not available");
   } else if (pefr) {
@@ -591,8 +697,7 @@ function calculate() {
     if (pefr.rev) html += row("Post-BD", pefr.rev);
   }
 
-  /* Bedside */
-  if (bedsideNotDone) {
+  if (chk("bedside_notdone")) {
     html += `<h2>Bedside findings</h2>`;
     html += row("Status", "Not assessed");
   } else if (bedside.length) {
@@ -600,8 +705,7 @@ function calculate() {
     bedside.forEach(n => { html += row("•", n); });
   }
 
-  /* CXR */
-  if (cxrNotDone) {
+  if (chk("cxr_notdone")) {
     html += `<h2>Chest X-ray</h2>`;
     html += row("Status", "Not performed / not available");
   } else if (cxr.length) {
@@ -628,8 +732,12 @@ function resetForm() {
   document.querySelectorAll("input[type=text], input[type=number], textarea").forEach(e => e.value = "");
   document.querySelectorAll("select").forEach(e => e.selectedIndex = 0);
   document.querySelectorAll("input[type=checkbox]").forEach(e => e.checked = false);
+  toggleHeight();
   $("output").innerHTML = '<p class="muted">Enter data and tap “Calculate &amp; update”.</p>';
 }
+
+/* init */
+toggleHeight();
 </script>
 </body>
 </html>
