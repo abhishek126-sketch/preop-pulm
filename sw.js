@@ -1,4 +1,4 @@
-const CACHE = "preop-pulm-v1";
+const CACHE = "preop-pulm-v3";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
