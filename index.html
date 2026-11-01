@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b3b66">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PreOp Pulm">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>PreOp Pulmonary Clearance</title>
+<style>
+  :root { --bg:#f4f7fb; --card:#fff; --ink:#172033; --muted:#5b677a; --line:#d8e0ea;
+          --accent:#0b6bcb; --warn:#b45309; --danger:#b91c1c; --ok:#047857; --info:#1d4ed8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.45; }
+  header { background:#0b3b66; color:#fff; padding:16px; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:6px 0 0; font-size:12px; opacity:.9; }
+  main { max-width:960px; margin:0 auto; padding:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+          padding:14px; margin-bottom:14px; }
+  h2 { font-size:15px; margin:0 0 10px; color:#0b3b66; }
+  h3 { font-size:13px; margin:14px 0 6px; color:#0b3b66; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  @media (max-width:640px){ .grid, .grid3 { grid-template-columns:1fr; } }
+  label { display:block; font-size:13px; font-weight:600; margin-bottom:4px; }
+  select, input[type=text], input[type=number], textarea {
+    width:100%; padding:10px; border:1px solid var(--line); border-radius:10px;
+    font-size:15px; background:#fff; }
+  textarea { min-height:60px; }
+  .check { display:flex; gap:8px; align-items:flex-start; font-weight:500; font-size:14px; margin:6px 0; }
+  .check input { margin-top:3px; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  button { padding:12px 16px; border:0; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
+  .primary { background:var(--accent); color:#fff; }
+  .secondary { background:#e7eef7; color:#0b3b66; }
+  .danger { background:#fee2e2; color:var(--danger); }
+  .result { border-left:6px solid var(--accent); background:#f8fbff; padding:14px; border-radius:10px; }
+  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:800; }
+  .low { background:#d1fae5; color:var(--ok); }
+  .mid { background:#fef3c7; color:var(--warn); }
+  .high { background:#fee2e2; color:var(--danger); }
+  .info { background:#dbeafe; color:var(--info); }
+  .muted { color:var(--muted); font-size:12px; }
+  .small { font-size:13px; }
+  .row { display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-bottom:1px dashed #e5e9f0; }
+  .row:last-child { border-bottom:0; }
+  .k { color:var(--muted); font-size:12.5px; }
+  .v { font-weight:600; font-size:13px; text-align:right; }
+  @media print {
+    body { background:#fff; color:#000; }
+    header, .no-print { display:none !important; }
+    .card { border:0; padding:0; margin:0 0 10px; }
+    main { max-width:100%; padding:0; }
+    .result { border:0; background:#fff; padding:0; border-left:none; }
+    .pill { border:1px solid #000 !important; background:#fff !important; color:#000 !important; }
+    .row { border-bottom:1px solid #ccc; }
+    h2 { border-top:1px solid #000; padding-top:4px; }
+    .print-title { display:block !important; font-size:16px; font-weight:800; margin-bottom:8px; text-align:center; }
+    .print-sig { display:block !important; margin-top:16px; }
+  }
+  .print-title, .print-sig { display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PreOp Pulmonary Clearance Aid</h1>
+  <p>ARISCAT · STOP-BANG · Spirometry · DLCO · PEFR · Bedside · CXR — for clinician-supervised preoperative pulmonary screening. Not a substitute for clinical judgment.</p>
+</header>
+
+<main>
+
+  <div class="card no-print">
+    <h2>1. Patient &amp; procedure (use dummy data while testing)</h2>
+    <div class="grid">
+      <div><label>Patient name / ID (optional)</label><input type="text" id="patient" placeholder="Dummy name"></div>
+      <div><label>Date</label><input type="text" id="date" placeholder="DD-MM-YYYY"></div>
+      <div><label>Age (years)</label><input type="number" id="ageYears" placeholder="e.g. 62" min="0" max="120"></div>
+      <div><label>Sex</label>
+        <select id="sex"><option value="">—</option><option>Male</option><option>Female</option><option>Other</option></select>
+      </div>
+      <div><label>BMI (kg/m²)</label><input type="number" id="bmi" placeholder="e.g. 27.4" step="0.1"></div>
+      <div><label>Procedure</label><input type="text" id="procedure" placeholder="e.g. elective hernia repair"></div>
+      <div><label>Urgency</label>
+        <select id="urgency"><option value="0">Elective</option><option value="8">Emergency</option></select>
+      </div>
+      <div><label>Anesthesia plan</label>
+        <select id="anes"><option>General</option><option>Regional</option><option>Sedation</option><option>Not decided</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <h2>2. Comorbidities &amp; history</h2>
+    <div class="grid">
+      <div><label>Smoking</label>
+        <select id="smoking"><option value="never">Never</option><option value="former">Former</option><option value="current">Current</option></select>
+      </div>
+      <div><label>Pack-years</label><input type="number" id="packyears" placeholder="e.g. 20" step="1"></div>
+      <div><label>Home oxygen</label>
+        <select id="homeo2"><option value="0">No</option><option value="1">Yes</option></select>
+      </div>
+      <div><label>Inhalers / oral steroids</label>
+        <select id="inhalers"><option value="0">None</option><option value="1">Inhaled</option><option value="2">Inhaled + oral</option></select>
+      </div>
+    </div>
+    <h3>Known respiratory / relevant conditions</h3>
+    <label class="check"><input type="checkbox" id="copd"> COPD</label>
+    <label class="check"><input type="checkbox" id="asthma"> Asthma</label>
+    <label class="check"><input type="checkbox" id="ild"> Interstitial lung disease</label>
+    <label class="check"><input type="checkbox" id="pah"> Pulmonary hypertension</label>
+    <label class="check"><input type="checkbox" id="osaKnown"> Known OSA</label>
+    <label class="check"><input type="checkbox" id="vte"> Prior VTE / PE</label>
+    <label class="check"><input type="checkbox" id="cad"> Cardiac disease</label>
+    <label class="check"><input type="checkbox" id="dm"> Diabetes</label>
+  </div>
+
+  <div class="card no-print">
+    <h2>3. Symptoms</h2>
+    <div class="grid">
+      <div><label>Dyspnea (mMRC)</label>
+        <select id="mmrc"><option value="0">0 — only on strenuous exercise</option>
+          <option value="1">1 — when hurrying on level</option>
+          <option value="2">2 — slower than peers on level</option>
+          <option value="3">3 — stops after ~100 m</option>
+          <option value="4">4 — too breathless to leave house</option></select>
+      </div>
+      <div><label>Cough</label>
+        <select id="cough"><option value="0">No</option><option value="1">Yes</option></select>
+      </div>
+      <div><label>Wheeze</label>
+        <select id="wheeze"><option value="0">No</option><option value="1">Yes</option></select>
+      </div>
+      <div><label>Sputum</label>
+        <select id="sputum"><option value="0">No</option><option value="1">Yes</option></select>
+      </div>
+      <div><label>Hemoptysis</label>
+        <select id="hemoptysis"><option value="0">No</option><option value="1">Yes</option></select>
+      </div>
+      <div><label>Recent RTI (past month)</label>
+        <select id="rti"><option value="0">No</option><option value="17">Yes</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <h2>4. ARISCAT inputs</h2>
+    <div class="grid3">
+      <div><label>SpO₂</label>
+        <select id="spo2"><option value="0">≥ 96%</option><option value="8">91–95%</option><option value="24">≤ 90%</option></select>
+      </div>
+      <div><label>Anemia (Hb ≤ 10 g/dL)</label>
+        <select id="anemia"><option value="0">No</option><option value="11">Yes</option></select>
+      </div>
+      <div><label>Surgical incision</label>
+        <select id="incision"><option value="0">Peripheral</option><option value="15">Upper abdominal</option><option value="24">Intrathoracic</option></select>
+      </div>
+      <div><label>Duration of surgery</label>
+        <select id="duration"><option value="0">&lt; 2 hours</option><option value="16">2–3 hours</option><option value="23">&gt; 3 hours</option></select>
+      </div>
+    </div>
+    <p class="muted">Age points and respiratory-infection points are taken from Sections 1 and 3. Emergency from Section 1.</p>
+  </div>
+
+  <div class="card no-print">
+    <h2>5. STOP-BANG</h2>
+    <label class="check"><input type="checkbox" id="sb_snoring"> Snoring loudly</label>
+    <label class="check"><input type="checkbox" id="sb_tired"> Tiredness / daytime sleepiness</label>
+    <label class="check"><input type="checkbox" id="sb_apnea"> Observed apnea / choking / gasping</label>
+    <label class="check"><input type="checkbox" id="sb_pressure"> Hypertension</label>
+    <label class="check"><input type="checkbox" id="sb_bmi"> BMI &gt; 35 kg/m²</label>
+    <label class="check"><input type="checkbox" id="sb_age50"> Age &gt; 50 years</label>
+    <label class="check"><input type="checkbox" id="sb_neck"> Neck circumference &gt; 40 cm</label>
+    <label class="check"><input type="checkbox" id="sb_male"> Male gender</label>
+  </div>
+
+  <div class="card no-print">
+    <h2>6. Spirometry</h2>
+    <div class="grid3">
+      <div><label>FEV₁ (L)</label><input type="number" id="fev1" step="0.01" placeholder="e.g. 1.85"></div>
+      <div><label>FEV₁ % predicted</label><input type="number" id="fev1p" step="1" placeholder="e.g. 62"></div>
+      <div><label>FVC (L)</label><input type="number" id="fvc" step="0.01" placeholder="e.g. 3.10"></div>
+      <div><label>FVC % predicted</label><input type="number" id="fvcp" step="1" placeholder="e.g. 88"></div>
+      <div><label>FEV₁ / FVC (%)</label><input type="number" id="ratio" step="1" placeholder="e.g. 60"></div>
+      <div><label>Post-BD FEV₁ (L)</label><input type="number" id="fev1post" step="0.01" placeholder="e.g. 2.05"></div>
+      <div><label>Post-BD FEV₁/FVC (%)</label><input type="number" id="ratiopost" step="1" placeholder="e.g. 66"></div>
+      <div><label>Post-BD FVC (L)</label><input type="number" id="fvcpost" step="0.01" placeholder="e.g. 3.30"></div>
+    </div>
+    <p class="muted">Reversibility is calculated from pre- and post-BD FEV₁ when both are entered.</p>
+  </div>
+
+  <div class="card no-print">
+    <h2>7. DLCO</h2>
+    <div class="grid3">
+      <div><label>DLCO (mL/min/mmHg)</label><input type="number" id="dlcoVal" step="0.01" placeholder="e.g. 14.2"></div>
+      <div><label>DLCO % predicted</label><input type="number" id="dlcoPct" step="1" placeholder="e.g. 68"></div>
+      <div><label>DLCO/VA % predicted</label><input type="number" id="dlcoVa" step="1" placeholder="e.g. 74"></div>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <h2>8. Peak expiratory flow (PEFR)</h2>
+    <div class="grid3">
+      <div><label>Best of 3 (L/min)</label><input type="number" id="pefrBest" step="1" placeholder="e.g. 320"></div>
+      <div><label>Average of 3 (L/min)</label><input type="number" id="pefrAvg" step="1" placeholder="e.g. 305"></div>
+      <div><label>Predicted PEFR (L/min)</label><input type="number" id="pefrPred" step="1" placeholder="e.g. 480"></div>
+      <div><label>Post-BD PEFR (L/min)</label><input type="number" id="pefrPost" step="1" placeholder="e.g. 410"></div>
+    </div>
+    <p class="muted">Predicted PEFR is optional — if provided, % predicted is calculated.</p>
+  </div>
+
+  <div class="card no-print">
+    <h2>9. Bedside respiratory tests</h2>
+    <div class="grid3">
+      <div><label>Respiratory rate (bpm)</label><input type="number" id="rr" step="1" placeholder="e.g. 18"></div>
+      <div><label>SpO₂ at rest (%)</label><input type="number" id="spo2rest" step="1" placeholder="e.g. 96"></div>
+      <div><label>SpO₂ after 6MWT/exertion (%)</label><input type="number" id="spo2ex" step="1" placeholder="e.g. 92"></div>
+      <div><label>Breath-hold time (sec)</label><input type="number" id="breathhold" step="1" placeholder="e.g. 18"></div>
+      <div><label>Single breath count</label><input type="number" id="sbc" step="1" placeholder="e.g. 25"></div>
+      <div><label>6MWD (m)</label><input type="number" id="sixmwd" step="1" placeholder="e.g. 320"></div>
+    </div>
+    <h3>Observation</h3>
+    <div class="grid">
+      <div><label>Accessory muscle use</label>
+        <select id="accessory"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <div><label>Pursed-lip breathing</label>
+        <select id="pursed"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <div><label>Chest expansion</label>
+        <select id="expansion"><option>Normal</option><option>Reduced</option></select></div>
+      <div><label>Percussion note</label>
+        <select id="percussion"><option>Normal</option><option>Hyperresonant</option><option>Dull</option></select></div>
+      <div><label>Breath sounds</label>
+        <select id="breathsounds"><option>Normal</option><option>Reduced</option><option>Wheeze</option><option>Crackles</option><option>Pleural rub</option></select></div>
+      <div><label>Ability to cough</label>
+        <select id="coughAbility"><option>Strong</option><option>Weak</option></select></div>
+      <div><label>Ability to deep breathe</label>
+        <select id="deepbreathe"><option value="1">Yes</option><option value="0">No</option></select></div>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <h2>10. Chest X-ray findings</h2>
+    <label class="check"><input type="checkbox" id="cxr_normal"> Normal</label>
+    <label class="check"><input type="checkbox" id="cxr_hyperinflation"> Hyperinflation</label>
+    <label class="check"><input type="checkbox" id="cxr_consolidation"> Consolidation</label>
+    <label class="check"><input type="checkbox" id="cxr_opacity"> Opacity / infiltrate</label>
+    <label class="check"><input type="checkbox" id="cxr_effusion"> Pleural effusion</label>
+    <label class="check"><input type="checkbox" id="cxr_pneumo"> Pneumothorax</label>
+    <label class="check"><input type="checkbox" id="cxr_mass"> Mass / nodule</label>
+    <label class="check"><input type="checkbox" id="cxr_cardiomegaly"> Cardiomegaly</label>
+    <label class="check"><input type="checkbox" id="cxr_congestion"> Pulmonary venous congestion</label>
+    <label class="check"><input type="checkbox" id="cxr_fibrosis"> Fibrosis / reticular pattern</label>
+    <label class="check"><input type="checkbox" id="cxr_diaphragm"> Elevated hemidiaphragm</label>
+    <label class="check"><input type="checkbox" id="cxr_other"> Other</label>
+    <label class="check"><input type="checkbox" id="cxr_notdone"> Not performed / not available</label>
+    <textarea id="cxrOther" placeholder="Other CXR findings (free text)"></textarea>
+  </div>
+
+  <div class="card no-print">
+    <h2>11. Optimization &amp; discussion checklist</h2>
+    <label class="check"><input type="checkbox" id="op_smoking"> Smoking cessation advised</label>
+    <label class="check"><input type="checkbox" id="op_bronch"> Bronchodilator / steroid optimized</label>
+    <label class="check"><input type="checkbox" id="op_infection"> Active infection treated / surgery deferred</label>
+    <label class="check"><input type="checkbox" id="op_osa"> OSA / CPAP plan documented</label>
+    <label class="check"><input type="checkbox" id="op_physio"> Incentive spirometry / chest physiotherapy</label>
+    <label class="check"><input type="checkbox" id="op_vaccine"> Vaccination status reviewed</label>
+    <label class="check"><input type="checkbox" id="op_meds"> Perioperative medication plan documented</label>
+    <label class="check"><input type="checkbox" id="op_anes"> Discussed with anesthesia / surgeon</label>
+  </div>
+
+  <div class="card">
+    <h2>12. Assessment</h2>
+    <div class="actions no-print">
+      <button class="primary" onclick="calculate()">Calculate &amp; update</button>
+      <button class="secondary" onclick="window.print()">Print / Save PDF</button>
+      <button class="danger" onclick="resetForm()">Reset</button>
+    </div>
+    <div id="output" class="result">
+      <p class="muted">Enter data and tap “Calculate &amp; update”.</p>
+    </div>
+    <div class="print-sig small">
+      <p><strong>Clinician signature:</strong> ______________________________</p>
+      <p><strong>Date/time:</strong> ______________________________</p>
+      <p class="muted">Screening / documentation aid only. Final surgical clearance is a clinical decision.</p>
+    </div>
+  </div>
+
+  <p class="muted small no-print">
+    Privacy: this version stores nothing on any server. Avoid entering real patient identifiers on shared devices. Clear the form after use.
+  </p>
+</main>
+
+<script>
+/* ---------- PWA install ---------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(err => console.error("SW failed:", err));
+  });
+}
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const num = id => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
+const intv = id => { const v = parseInt($(id).value, 10); return isNaN(v) ? 0 : v; };
+const chk = id => $(id).checked ? 1 : 0;
+const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+/* ---------- Spirometry interpretation ---------- */
+function interpretSpiro() {
+  const fev1p = num("fev1p"), fvcp = num("fvcp"), ratio = num("ratio");
+  const fev1 = num("fev1"), fev1post = num("fev1post"), ratiopost = num("ratiopost");
+  if (ratio === null && fev1 === null && fev1p === null) return null;
+
+  let pattern = "Unable to classify";
+  let severity = "";
+  const r = (ratio !== null) ? ratio : (fev1 !== null && num("fvc") ? (fev1 / num("fvc") * 100) : null);
+
+  if (r !== null) {
+    if (r < 70) {
+      pattern = "Obstructive pattern";
+      if (fev1p !== null) {
+        if (fev1p >= 80) severity = "Mild (GOLD 1)";
+        else if (fev1p >= 50) severity = "Moderate (GOLD 2)";
+        else if (fev1p >= 30) severity = "Severe (GOLD 3)";
+        else severity = "Very severe (GOLD 4)";
+      }
+    } else if (fvcp !== null && fvcp < 80) {
+      pattern = "Possible restrictive pattern (confirm with lung volumes)";
+    } else {
+      pattern = "Normal spirometry";
+    }
+  } else if (fvcp !== null && fvcp < 80) {
+    pattern = "Possible restrictive pattern (FEV₁/FVC not provided)";
+  }
+
+  let reversibility = "";
+  if (fev1 !== null && fev1post !== null && fev1 > 0) {
+    const deltaML = (fev1post - fev1) * 1000;
+    const deltaPct = ((fev1post - fev1) / fev1) * 100;
+    const positive = (deltaPct >= 12) && (deltaML >= 200);
+    reversibility = `${positive ? "Significant" : "Non-significant"} reversibility: ΔFEV₁ ${deltaML.toFixed(0)} mL (${deltaPct.toFixed(1)}%)`;
+  }
+
+  let postInfo = "";
+  if (ratiopost !== null) {
+    postInfo = `Post-BD FEV₁/FVC ${ratiopost}%`;
+  }
+
+  return { pattern, severity, reversibility, postInfo };
+}
+
+/* ---------- DLCO interpretation ---------- */
+function interpretDLCO() {
+  const pct = num("dlcoPct");
+  if (pct === null) return null;
+  let s;
+  if (pct >= 75) s = "Normal";
+  else if (pct >= 60) s = "Mild reduction";
+  else if (pct >= 40) s = "Moderate reduction";
+  else s = "Severe reduction";
+  return { pct, s };
+}
+
+/* ---------- PEFR interpretation ---------- */
+function interpretPEFR() {
+  const best = num("pefrBest"), avg = num("pefrAvg"), pred = num("pefrPred"), post = num("pefrPost");
+  if (best === null && avg === null) return null;
+  let pctPred = null, severity = "";
+  const measured = best !== null ? best : avg;
+  if (pred && pred > 0 && measured) {
+    pctPred = (measured / pred) * 100;
+    if (pctPred >= 80) severity = "Normal";
+    else if (pctPred >= 60) severity = "Mild reduction";
+    else if (pctPred >= 40) severity = "Moderate reduction";
+    else severity = "Severe reduction";
+  }
+  let rev = "";
+  if (measured && post && measured > 0) {
+    const dpct = ((post - measured) / measured) * 100;
+    rev = `${dpct >= 15 ? "Significant" : "Non-significant"} PEFR reversibility: ${dpct.toFixed(1)}%`;
+  }
+  return { best, avg, pred, post, pctPred, severity, rev };
+}
+
+/* ---------- Bedside summary ---------- */
+function interpretBedside() {
+  const notes = [];
+  const spo2rest = num("spo2rest"), spo2ex = num("spo2ex");
+  const bh = num("breathhold"), sbc = num("sbc"), smwd = num("sixmwd");
+  if (spo2rest !== null && spo2rest < 94) notes.push(`Resting SpO₂ ${spo2rest}% — hypoxemia`);
+  if (spo2rest !== null && spo2ex !== null && (spo2rest - spo2ex) >= 4) notes.push(`Desaturation on exertion: ${spo2rest}% → ${spo2ex}%`);
+  if (bh !== null && bh < 15) notes.push(`Breath-hold time low (${bh}s)`);
+  if (sbc !== null && sbc < 20) notes.push(`Single breath count low (${sbc})`);
+  if (smwd !== null && smwd < 300) notes.push(`6MWD reduced (${smwd} m)`);
+  if (chk("accessory")) notes.push("Accessory muscle use present");
+  if (chk("pursed")) notes.push("Pursed-lip breathing present");
+  if ($("expansion").value === "Reduced") notes.push("Reduced chest expansion");
+  if ($("percussion").value !== "Normal") notes.push(`Percussion: ${$("percussion").value}`);
+  if ($("breathsounds").value !== "Normal") notes.push(`Breath sounds: ${$("breathsounds").value}`);
+  if ($("coughAbility").value === "Weak") notes.push("Weak cough");
+  if (chk("deepbreathe") === 0) notes.push("Unable to deep breathe");
+  return notes;
+}
+
+/* ---------- CXR summary ---------- */
+function interpretCXR() {
+  const keys = [
+    ["cxr_normal","Normal"],["cxr_hyperinflation","Hyperinflation"],
+    ["cxr_consolidation","Consolidation"],["cxr_opacity","Opacity / infiltrate"],
+    ["cxr_effusion","Pleural effusion"],["cxr_pneumo","Pneumothorax"],
+    ["cxr_mass","Mass / nodule"],["cxr_cardiomegaly","Cardiomegaly"],
+    ["cxr_congestion","Pulmonary venous congestion"],["cxr_fibrosis","Fibrosis / reticular"],
+    ["cxr_diaphragm","Elevated hemidiaphragm"],["cxr_other","Other"]
+  ];
+  const out = keys.filter(([id]) => chk(id)).map(([_, label]) => label);
+  const other = $("cxrOther").value.trim();
+  if (other) out.push(other);
+  if (chk("cxr_notdone")) out.push("Not performed / not available");
+  return out;
+}
+
+/* ---------- Main ---------- */
+function calculate() {
+  /* ARISCAT */
+  const age = intv("ageYears");
+  let agePts = 0;
+  if (age > 80) agePts = 16;
+  else if (age > 50) agePts = 3;
+  else if (age > 0) agePts = 0;
+
+  const rtiPts = parseInt($("rti").value, 10) || 0;
+  const spo2Pts = parseInt($("spo2").value, 10) || 0;
+  const anemiaPts = parseInt($("anemia").value, 10) || 0;
+  const incisionPts = parseInt($("incision").value, 10) || 0;
+  const durationPts = parseInt($("duration").value, 10) || 0;
+  const emergencyPts = parseInt($("urgency").value, 10) || 0;
+  const ariscat = agePts + rtiPts + spo2Pts + anemiaPts + incisionPts + durationPts + emergencyPts;
+
+  let arClass = "low", arLabel = "Low";
+  if (ariscat >= 45) { arClass = "high"; arLabel = "High"; }
+  else if (ariscat >= 26) { arClass = "mid"; arLabel = "Intermediate"; }
+
+  /* STOP-BANG */
+  const sb = chk("sb_snoring") + chk("sb_tired") + chk("sb_apnea") + chk("sb_pressure")
+           + chk("sb_bmi") + chk("sb_age50") + chk("sb_neck") + chk("sb_male");
+  let sbClass = "low", sbLabel = "Low";
+  if (sb >= 5) { sbClass = "high"; sbLabel = "High"; }
+  else if (sb >= 3) { sbClass = "mid"; sbLabel = "Intermediate"; }
+
+  /* Tests */
+  const spiro = interpretSpiro();
+  const dlco = interpretDLCO();
+  const pefr = interpretPEFR();
+  const bedside = interpretBedside();
+  const cxr = interpretCXR();
+
+  /* Recommendation engine */
+  const order = { low: 0, mid: 1, high: 2 };
+  let level = "low";
+  const raise = l => { if (order[l] > order[level]) level = l; };
+  const concerns = [];
+
+  if (ariscat >= 45) { raise("high"); concerns.push("ARISCAT high"); }
+  else if (ariscat >= 26) { raise("mid"); concerns.push("ARISCAT intermediate"); }
+
+  if (sb >= 5) { raise("high"); concerns.push("STOP-BANG high — OSA precautions"); }
+  else if (sb >= 3) { raise("mid"); concerns.push("STOP-BANG intermediate — OSA caution"); }
+
+  if (spiro) {
+    if (spiro.pattern.startsWith("Obstructive")) {
+      if (spiro.severity.includes("Severe") || spiro.severity.includes("Very severe")) {
+        raise("high"); concerns.push("Severe obstruction on spirometry");
+      } else { raise("mid"); concerns.push("Obstructive spirometry"); }
+    } else if (spiro.pattern.startsWith("Possible restrictive")) {
+      raise("mid"); concerns.push("Possible restrictive pattern — confirm with lung volumes");
+    }
+    if (spiro.reversibility && spiro.reversibility.startsWith("Significant")) {
+      concerns.push("Significant bronchodilator reversibility — optimize asthma/COPD therapy");
+    }
+  }
+
+  if (dlco) {
+    if (dlco.pct < 40) { raise("high"); concerns.push("Severe DLCO reduction"); }
+    else if (dlco.pct < 60) { raise("mid"); concerns.push("Moderate DLCO reduction"); }
+    else if (dlco.pct < 75) concerns.push("Mild DLCO reduction");
+  }
+
+  if (pefr && pefr.pctPred !== null) {
+    if (pefr.severity.includes("Severe")) raise("mid");
+  }
+
+  if (bedside.some(n => n.includes("Desaturation"))) { raise("mid"); }
+  if (bedside.some(n => n.includes("Resting SpO₂") && n.includes("hypoxemia"))) { raise("mid"); }
+
+  if (cxr.length && !cxr.includes("Normal") && !cxr.includes("Not performed / not available")) {
+    const serious = cxr.some(f =>
+      f.includes("Consolidation") || f.includes("Pneumothorax") ||
+      f.includes("Effusion") || f.includes("Mass") || f.includes("Congestion"));
+    if (serious) { raise("high"); concerns.push("Significant CXR abnormality"); }
+    else raise("mid");
+  }
+
+  const category = {
+    low: "Cleared — routine preoperative pulmonary precautions",
+    mid: "Cleared with recommendations — optimize modifiable factors and re-assess",
+    high: "High risk — optimize and discuss with anesthesia / surgeon before clearance"
+  }[level];
+
+  /* Checklist */
+  const checklist = [
+    ["op_smoking","Smoking cessation advised"],
+    ["op_bronch","Bronchodilator/steroid optimized"],
+    ["op_infection","Active infection treated/deferred"],
+    ["op_osa","OSA/CPAP plan documented"],
+    ["op_physio","Incentive spirometry/physiotherapy"],
+    ["op_vaccine","Vaccination reviewed"],
+    ["op_meds","Perioperative medication plan documented"],
+    ["op_anes","Discussed with anesthesia/surgeon"]
+  ].filter(([id]) => chk(id)).map(([_, label]) => label);
+
+  /* Build output */
+  const pname = $("patient").value || "—";
+  const pdate = $("date").value || "—";
+  const pprocedure = $("procedure").value || "—";
+  const psex = $("sex").value || "—";
+  const pbmi = $("bmi").value || "—";
+  const panes = $("anes").value;
+
+  const row = (k, v) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`;
+
+  let html = `<div class="print-title">Preoperative Pulmonary Assessment</div>`;
+  html += `<p><strong>Patient:</strong> ${esc(pname)} &nbsp;|&nbsp; <strong>Sex:</strong> ${esc(psex)} &nbsp;|&nbsp; <strong>Age:</strong> ${age || "—"} &nbsp;|&nbsp; <strong>BMI:</strong> ${esc(pbmi)}</p>`;
+  html += `<p><strong>Date:</strong> ${esc(pdate)} &nbsp;|&nbsp; <strong>Procedure:</strong> ${esc(pprocedure)} &nbsp;|&nbsp; <strong>Anesthesia:</strong> ${esc(panes)}</p>`;
+
+  html += `<h2>Risk scores</h2>`;
+  html += row("ARISCAT", `${ariscat} / 123 — ${arLabel} risk`);
+  html += row("STOP-BANG", `${sb} / 8 — ${sbLabel} OSA risk`);
+
+  if (spiro) {
+    html += `<h2>Spirometry</h2>`;
+    const parts = [spiro.pattern];
+    if (spiro.severity) parts.push(spiro.severity);
+    html += row("Pattern", parts.join(" — "));
+    if (spiro.reversibility) html += row("Reversibility", spiro.reversibility);
+    if (spiro.postInfo) html += row("Post-BD", spiro.postInfo);
+  }
+  if (dlco) {
+    html += `<h2>DLCO</h2>`;
+    html += row("DLCO % predicted", `${dlco.pct}% — ${dlco.s}`);
+  }
+  if (pefr) {
+    html += `<h2>PEFR</h2>`;
+    if (pefr.best !== null) html += row("Best of 3", `${pefr.best} L/min`);
+    if (pefr.avg !== null) html += row("Average", `${pefr.avg} L/min`);
+    if (pefr.pctPred !== null) html += row("% predicted", `${pefr.pctPred.toFixed(1)}% — ${pefr.severity}`);
+    if (pefr.rev) html += row("Post-BD", pefr.rev);
+  }
+  if (bedside.length) {
+    html += `<h2>Bedside findings</h2>`;
+    bedside.forEach(n => { html += row("•", n); });
+  }
+  if (cxr.length) {
+    html += `<h2>Chest X-ray</h2>`;
+    html += row("Findings", cxr.join("; "));
+  }
+  if (checklist.length) {
+    html += `<h2>Optimization documented</h2>`;
+    checklist.forEach(c => { html += row("•", c); });
+  }
+  if (concerns.length) {
+    html += `<h2>Key concerns</h2>`;
+    concerns.forEach(c => { html += row("•", c); });
+  }
+  html += `<h2>Recommendation</h2>`;
+  html += `<p><strong>${esc(category)}</strong></p>`;
+  html += `<p class="muted small">Screening / documentation aid only. Final clearance is a clinical decision.</p>`;
+
+  $("output").innerHTML = html;
+}
+
+function resetForm() {
+  document.querySelectorAll("input[type=text], input[type=number], textarea").forEach(e => e.value = "");
+  document.querySelectorAll("select").forEach(e => e.selectedIndex = 0);
+  document.querySelectorAll("input[type=checkbox]").forEach(e => e.checked = false);
+  $("output").innerHTML = '<p class="muted">Enter data and tap “Calculate &amp; update”.</p>';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "PreOp Pulmonary Clearance",
+  "short_name": "PreOp Pulm",
+  "description": "Preoperative pulmonary screening aid — ARISCAT, STOP-BANG, spirometry, DLCO, PEFR, bedside tests, CXR.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0b3b66",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
