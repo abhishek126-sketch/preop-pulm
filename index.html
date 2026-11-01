@@ -47,6 +47,8 @@
   .info { background:#dbeafe; color:var(--info); }
   .muted { color:var(--muted); font-size:12px; }
   .small { font-size:13px; }
+  .note { background:#eef4fb; border:1px solid #cfe0f3; color:#0b3b66;
+          border-radius:10px; padding:8px 10px; font-size:12.5px; margin:0 0 10px; }
   .row { display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-bottom:1px dashed #e5e9f0; }
   .row:last-child { border-bottom:0; }
   .k { color:var(--muted); font-size:12.5px; }
@@ -69,7 +71,7 @@
 <body>
 <header>
   <h1>PreOp Pulmonary Clearance Aid</h1>
-  <p>ARISCAT · STOP-BANG · Spirometry · DLCO · PEFR · Bedside · CXR — for clinician-supervised preoperative pulmonary screening. Not a substitute for clinical judgment.</p>
+  <p>ARISCAT · STOP-BANG · Spirometry · DLCO · PEFR · Bedside · CXR — clinician-supervised preoperative pulmonary screening. Not a substitute for clinical judgment.</p>
 </header>
 
 <main>
@@ -89,7 +91,13 @@
         <select id="urgency"><option value="0">Elective</option><option value="8">Emergency</option></select>
       </div>
       <div><label>Anesthesia plan</label>
-        <select id="anes"><option>General</option><option>Regional</option><option>Sedation</option><option>Not decided</option></select>
+        <select id="anes">
+          <option>General</option>
+          <option>Spinal</option>
+          <option>Regional</option>
+          <option>Sedation</option>
+          <option>Not decided</option>
+        </select>
       </div>
     </div>
   </div>
@@ -179,7 +187,9 @@
   </div>
 
   <div class="card no-print">
-    <h2>6. Spirometry</h2>
+    <h2>6. Spirometry (optional)</h2>
+    <p class="note">Sections 6–10 are optional. Leave blank or tick “Not performed” if unavailable — the assessment still works from clinical data and scores above.</p>
+    <label class="check"><input type="checkbox" id="spiro_notdone"> Not performed / not available</label>
     <div class="grid3">
       <div><label>FEV₁ (L)</label><input type="number" id="fev1" step="0.01" placeholder="e.g. 1.85"></div>
       <div><label>FEV₁ % predicted</label><input type="number" id="fev1p" step="1" placeholder="e.g. 62"></div>
@@ -194,7 +204,8 @@
   </div>
 
   <div class="card no-print">
-    <h2>7. DLCO</h2>
+    <h2>7. DLCO (optional)</h2>
+    <label class="check"><input type="checkbox" id="dlco_notdone"> Not performed / not available</label>
     <div class="grid3">
       <div><label>DLCO (mL/min/mmHg)</label><input type="number" id="dlcoVal" step="0.01" placeholder="e.g. 14.2"></div>
       <div><label>DLCO % predicted</label><input type="number" id="dlcoPct" step="1" placeholder="e.g. 68"></div>
@@ -203,7 +214,8 @@
   </div>
 
   <div class="card no-print">
-    <h2>8. Peak expiratory flow (PEFR)</h2>
+    <h2>8. Peak expiratory flow (optional)</h2>
+    <label class="check"><input type="checkbox" id="pefr_notdone"> Not performed / not available</label>
     <div class="grid3">
       <div><label>Best of 3 (L/min)</label><input type="number" id="pefrBest" step="1" placeholder="e.g. 320"></div>
       <div><label>Average of 3 (L/min)</label><input type="number" id="pefrAvg" step="1" placeholder="e.g. 305"></div>
@@ -214,7 +226,8 @@
   </div>
 
   <div class="card no-print">
-    <h2>9. Bedside respiratory tests</h2>
+    <h2>9. Bedside respiratory tests (optional)</h2>
+    <label class="check"><input type="checkbox" id="bedside_notdone"> Not assessed</label>
     <div class="grid3">
       <div><label>Respiratory rate (bpm)</label><input type="number" id="rr" step="1" placeholder="e.g. 18"></div>
       <div><label>SpO₂ at rest (%)</label><input type="number" id="spo2rest" step="1" placeholder="e.g. 96"></div>
@@ -243,7 +256,7 @@
   </div>
 
   <div class="card no-print">
-    <h2>10. Chest X-ray findings</h2>
+    <h2>10. Chest X-ray findings (optional)</h2>
     <label class="check"><input type="checkbox" id="cxr_normal"> Normal</label>
     <label class="check"><input type="checkbox" id="cxr_hyperinflation"> Hyperinflation</label>
     <label class="check"><input type="checkbox" id="cxr_consolidation"> Consolidation</label>
@@ -419,7 +432,6 @@ function interpretCXR() {
   const out = keys.filter(([id]) => chk(id)).map(([_, label]) => label);
   const other = $("cxrOther").value.trim();
   if (other) out.push(other);
-  if (chk("cxr_notdone")) out.push("Not performed / not available");
   return out;
 }
 
@@ -451,12 +463,18 @@ function calculate() {
   if (sb >= 5) { sbClass = "high"; sbLabel = "High"; }
   else if (sb >= 3) { sbClass = "mid"; sbLabel = "Intermediate"; }
 
-  /* Tests */
-  const spiro = interpretSpiro();
-  const dlco = interpretDLCO();
-  const pefr = interpretPEFR();
-  const bedside = interpretBedside();
-  const cxr = interpretCXR();
+  /* Optional tests */
+  const spiroNotDone = chk("spiro_notdone");
+  const dlcoNotDone = chk("dlco_notdone");
+  const pefrNotDone = chk("pefr_notdone");
+  const bedsideNotDone = chk("bedside_notdone");
+  const cxrNotDone = chk("cxr_notdone");
+
+  const spiro = spiroNotDone ? null : interpretSpiro();
+  const dlco = dlcoNotDone ? null : interpretDLCO();
+  const pefr = pefrNotDone ? null : interpretPEFR();
+  const bedside = bedsideNotDone ? [] : interpretBedside();
+  const cxr = cxrNotDone ? [] : interpretCXR();
 
   /* Recommendation engine */
   const order = { low: 0, mid: 1, high: 2 };
@@ -489,19 +507,18 @@ function calculate() {
     else if (dlco.pct < 75) concerns.push("Mild DLCO reduction");
   }
 
-  if (pefr && pefr.pctPred !== null) {
-    if (pefr.severity.includes("Severe")) raise("mid");
-  }
+  if (pefr && pefr.pctPred !== null && pefr.severity.includes("Severe")) raise("mid");
 
-  if (bedside.some(n => n.includes("Desaturation"))) { raise("mid"); }
-  if (bedside.some(n => n.includes("Resting SpO₂") && n.includes("hypoxemia"))) { raise("mid"); }
+  if (bedside.some(n => n.includes("Desaturation"))) raise("mid");
+  if (bedside.some(n => n.includes("Resting SpO₂") && n.includes("hypoxemia"))) raise("mid");
 
-  if (cxr.length && !cxr.includes("Normal") && !cxr.includes("Not performed / not available")) {
+  if (cxr.length) {
     const serious = cxr.some(f =>
       f.includes("Consolidation") || f.includes("Pneumothorax") ||
       f.includes("Effusion") || f.includes("Mass") || f.includes("Congestion"));
+    const onlyNormal = cxr.length === 1 && cxr[0] === "Normal";
     if (serious) { raise("high"); concerns.push("Significant CXR abnormality"); }
-    else raise("mid");
+    else if (!onlyNormal) raise("mid");
   }
 
   const category = {
@@ -540,7 +557,11 @@ function calculate() {
   html += row("ARISCAT", `${ariscat} / 123 — ${arLabel} risk`);
   html += row("STOP-BANG", `${sb} / 8 — ${sbLabel} OSA risk`);
 
-  if (spiro) {
+  /* Spirometry */
+  if (spiroNotDone) {
+    html += `<h2>Spirometry</h2>`;
+    html += row("Status", "Not performed / not available");
+  } else if (spiro) {
     html += `<h2>Spirometry</h2>`;
     const parts = [spiro.pattern];
     if (spiro.severity) parts.push(spiro.severity);
@@ -548,25 +569,46 @@ function calculate() {
     if (spiro.reversibility) html += row("Reversibility", spiro.reversibility);
     if (spiro.postInfo) html += row("Post-BD", spiro.postInfo);
   }
-  if (dlco) {
+
+  /* DLCO */
+  if (dlcoNotDone) {
+    html += `<h2>DLCO</h2>`;
+    html += row("Status", "Not performed / not available");
+  } else if (dlco) {
     html += `<h2>DLCO</h2>`;
     html += row("DLCO % predicted", `${dlco.pct}% — ${dlco.s}`);
   }
-  if (pefr) {
+
+  /* PEFR */
+  if (pefrNotDone) {
+    html += `<h2>PEFR</h2>`;
+    html += row("Status", "Not performed / not available");
+  } else if (pefr) {
     html += `<h2>PEFR</h2>`;
     if (pefr.best !== null) html += row("Best of 3", `${pefr.best} L/min`);
     if (pefr.avg !== null) html += row("Average", `${pefr.avg} L/min`);
     if (pefr.pctPred !== null) html += row("% predicted", `${pefr.pctPred.toFixed(1)}% — ${pefr.severity}`);
     if (pefr.rev) html += row("Post-BD", pefr.rev);
   }
-  if (bedside.length) {
+
+  /* Bedside */
+  if (bedsideNotDone) {
+    html += `<h2>Bedside findings</h2>`;
+    html += row("Status", "Not assessed");
+  } else if (bedside.length) {
     html += `<h2>Bedside findings</h2>`;
     bedside.forEach(n => { html += row("•", n); });
   }
-  if (cxr.length) {
+
+  /* CXR */
+  if (cxrNotDone) {
+    html += `<h2>Chest X-ray</h2>`;
+    html += row("Status", "Not performed / not available");
+  } else if (cxr.length) {
     html += `<h2>Chest X-ray</h2>`;
     html += row("Findings", cxr.join("; "));
   }
+
   if (checklist.length) {
     html += `<h2>Optimization documented</h2>`;
     checklist.forEach(c => { html += row("•", c); });
