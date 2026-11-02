@@ -50,6 +50,9 @@
   .small { font-size:13px; }
   .note { background:#eef4fb; border:1px solid #cfe0f3; color:#0b3b66;
           border-radius:10px; padding:8px 10px; font-size:12.5px; margin:0 0 10px; }
+  details summary { font-weight:700; color:#0b3b66; font-size:13px; cursor:pointer; padding:4px 0; }
+  details[open] summary { margin-bottom:6px; }
+  details .asa-body p { margin:6px 0; font-size:12.5px; }
   .row { display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-bottom:1px dashed #e5e9f0; }
   .row:last-child { border-bottom:0; }
   .k { color:var(--muted); font-size:12.5px; }
@@ -77,7 +80,6 @@
 
 <main>
 
-  <!-- ================= SECTION 1: PATIENT & PROCEDURE ================= -->
   <div class="card no-print">
     <h2>1. Patient &amp; procedure</h2>
     <div class="grid">
@@ -104,6 +106,16 @@
       </div>
       <div><label>BMI (auto)</label><input type="text" id="bmi" readonly placeholder="—"></div>
       <div><label>BMI category (Asian cutoffs)</label><input type="text" id="bmiCat" readonly placeholder="—"></div>
+      <div style="grid-column: 1 / -1;">
+        <label>ASA physical status (required for Gupta models)</label>
+        <select id="asaClass" onchange="syncASA()">
+          <option value="1">ASA I — Normal healthy patient</option>
+          <option value="2">ASA II — Mild systemic disease</option>
+          <option value="3">ASA III — Severe systemic disease</option>
+          <option value="4">ASA IV — Severe systemic disease, constant threat to life</option>
+          <option value="5">ASA V — Moribund, not expected to survive without operation</option>
+        </select>
+      </div>
       <div><label>Procedure</label><input type="text" id="procedure" placeholder="e.g. elective hernia repair"></div>
       <div><label>Urgency</label>
         <select id="urgency"><option value="0">Elective</option><option value="1">Emergency</option></select>
@@ -118,9 +130,21 @@
         </select>
       </div>
     </div>
+    <div class="note" style="margin-top:12px;">
+      <details>
+        <summary>ASA criteria — tap to view</summary>
+        <div class="asa-body">
+          <p><strong>ASA I:</strong> A normal healthy patient. Healthy, non-smoking, no or minimal alcohol use.</p>
+          <p><strong>ASA II:</strong> A patient with mild systemic disease. Mild diseases only without substantive functional limitations. Examples: current smoker, social alcohol drinker, pregnancy, obesity (BMI 30–40), well-controlled DM/HTN, mild lung disease.</p>
+          <p><strong>ASA III:</strong> A patient with severe systemic disease. Substantive functional limitations; one or more moderate-to-severe diseases. Examples: poorly controlled DM/HTN, COPD, morbid obesity (BMI ≥ 40), active hepatitis, alcohol dependence, implanted pacemaker, moderate reduction of ejection fraction, ESRD on dialysis, history &gt; 3 months MI/CVA/TIA/CAD-stents.</p>
+          <p><strong>ASA IV:</strong> A patient with severe systemic disease that is a constant threat to life. Examples: recent (≤ 3 months) MI/CVA/TIA/CAD-stents, ongoing cardiac ischemia or severe valve dysfunction, severe reduction of ejection fraction, sepsis, DIC, ARDS, or ESRD not on regular dialysis.</p>
+          <p><strong>ASA V:</strong> A moribund patient not expected to survive without the operation. Examples: ruptured abdominal/thoracic aneurysm, massive trauma, intracranial bleed with mass effect, ischemic bowel with significant cardiac pathology or multi-organ failure.</p>
+          <p class="muted">ASA VI (brain-dead organ donor) is not applicable to preoperative pulmonary risk scoring.</p>
+        </div>
+      </details>
+    </div>
   </div>
 
-  <!-- ================= SECTION 2: COMORBIDITIES ================= -->
   <div class="card no-print">
     <h2>2. Comorbidities &amp; history</h2>
     <h3>Smoking</h3>
@@ -167,7 +191,6 @@
     <label class="check"><input type="checkbox" id="dm"> Diabetes</label>
   </div>
 
-  <!-- ================= SECTION 3: SYMPTOMS ================= -->
   <div class="card no-print">
     <h2>3. Symptoms</h2>
     <div class="grid">
@@ -196,7 +219,6 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 4: ARISCAT ================= -->
   <div class="card no-print">
     <h2>4. ARISCAT inputs</h2>
     <div class="grid3">
@@ -213,10 +235,9 @@
         <select id="duration"><option value="0">&lt; 2 hours</option><option value="16">2–3 hours</option><option value="23">&gt; 3 hours</option></select>
       </div>
     </div>
-    <p class="muted">Age and RTI points are from Sections 1 and 3. Emergency from Section 1.</p>
+    <p class="muted">Age and RTI points from Sections 1 and 3. Emergency from Section 1.</p>
   </div>
 
-  <!-- ================= SECTION 5: STOP-BANG ================= -->
   <div class="card no-print">
     <h2>5. STOP-BANG</h2>
     <label class="check"><input type="checkbox" id="sb_snoring"> Snoring loudly</label>
@@ -229,10 +250,9 @@
     <label class="check"><input type="checkbox" id="sb_male"> Male gender</label>
   </div>
 
-  <!-- ================= SECTION 6: AROZULLAH ================= -->
   <div class="card no-print">
     <h2>6. Arozullah Respiratory Failure Index</h2>
-    <p class="note">Point-based index for prolonged mechanical ventilation (>48h) or unplanned intubation. Independent of the ARISCAT score above.</p>
+    <p class="note">Point-based index for prolonged mechanical ventilation (&gt;48h) or unplanned intubation.</p>
     <div class="grid">
       <div><label>Type of surgery</label>
         <select id="az_surgery">
@@ -272,19 +292,12 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 7: GUPTA RESPIRATORY FAILURE ================= -->
   <div class="card no-print">
     <h2>7. Gupta Postoperative Respiratory Failure Risk</h2>
-    <p class="note">Logistic regression model (Chest 2011). Predicts mechanical ventilation &gt;48h or unplanned reintubation within 30 days. Input the same surgical and sepsis details below.</p>
+    <p class="note">Logistic regression model (Chest 2011). Predicts mechanical ventilation &gt;48h or unplanned reintubation.</p>
     <div class="grid">
-      <div><label>ASA class</label>
-        <select id="gupta_rf_asa">
-          <option value="5">V — Moribund</option>
-          <option value="1">I — Normal healthy</option>
-          <option value="2">II — Mild systemic disease</option>
-          <option value="3">III — Severe systemic disease</option>
-          <option value="4">IV — Constant threat to life</option>
-        </select>
+      <div><label>ASA class (auto from Section 1)</label>
+        <input type="text" id="gupta_rf_asa_display" readonly placeholder="Pick ASA in Section 1">
       </div>
       <div><label>Preoperative sepsis status</label>
         <select id="gupta_rf_sepsis">
@@ -304,7 +317,7 @@
       <div><label>Emergency surgery?</label>
         <select id="gupta_rf_emergency"><option value="0">No</option><option value="1">Yes</option></select>
       </div>
-      <div><label>Type of surgery</label>
+      <div style="grid-column: 1 / -1;"><label>Type of surgery</label>
         <select id="gupta_rf_procedure">
           <option value="hernia_ventral_inguinal">Hernia (ventral, inguinal, femoral)</option>
           <option value="anorectal">Anorectal</option>
@@ -335,19 +348,12 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 8: GUPTA PNEUMONIA ================= -->
   <div class="card no-print">
     <h2>8. Gupta Postoperative Pneumonia Risk</h2>
     <p class="note">Logistic regression model (Mayo Clin Proc 2013). Predicts percentage risk of postoperative pneumonia.</p>
     <div class="grid">
-      <div><label>ASA class</label>
-        <select id="gupta_pn_asa">
-          <option value="5">V — Moribund</option>
-          <option value="1">I — Normal healthy</option>
-          <option value="2">II — Mild systemic disease</option>
-          <option value="3">III — Severe systemic disease</option>
-          <option value="4">IV — Constant threat to life</option>
-        </select>
+      <div><label>ASA class (auto from Section 1)</label>
+        <input type="text" id="gupta_pn_asa_display" readonly placeholder="Pick ASA in Section 1">
       </div>
       <div><label>COPD?</label>
         <select id="gupta_pn_copd"><option value="0">No</option><option value="1">Yes</option></select>
@@ -370,7 +376,7 @@
       <div><label>Smoking within last year?</label>
         <select id="gupta_pn_smoking"><option value="0">No</option><option value="1">Yes</option></select>
       </div>
-      <div><label>Type of surgery</label>
+      <div style="grid-column: 1 / -1;"><label>Type of surgery</label>
         <select id="gupta_pn_procedure">
           <option value="hernia_ventral_inguinal">Hernia (ventral, inguinal, femoral)</option>
           <option value="anorectal">Anorectal</option>
@@ -401,7 +407,6 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 9: SPIROMETRY ================= -->
   <div class="card no-print">
     <h2>9. Spirometry (optional)</h2>
     <p class="note">Sections 9–13 are optional. Leave blank or tick “Not performed” if unavailable.</p>
@@ -418,7 +423,6 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 10: DLCO ================= -->
   <div class="card no-print">
     <h2>10. DLCO (optional)</h2>
     <label class="check"><input type="checkbox" id="dlco_notdone"> Not performed / not available</label>
@@ -429,7 +433,6 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 11: PEFR ================= -->
   <div class="card no-print">
     <h2>11. Peak expiratory flow (optional)</h2>
     <label class="check"><input type="checkbox" id="pefr_notdone"> Not performed / not available</label>
@@ -441,7 +444,6 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 12: BEDSIDE ================= -->
   <div class="card no-print">
     <h2>12. Bedside respiratory tests (optional)</h2>
     <label class="check"><input type="checkbox" id="bedside_notdone"> Not assessed</label>
@@ -472,7 +474,6 @@
     </div>
   </div>
 
-  <!-- ================= SECTION 13: CXR ================= -->
   <div class="card no-print">
     <h2>13. Chest X-ray findings (optional)</h2>
     <label class="check"><input type="checkbox" id="cxr_normal"> Normal</label>
@@ -491,7 +492,6 @@
     <textarea id="cxrOther" placeholder="Other CXR findings (free text)"></textarea>
   </div>
 
-  <!-- ================= SECTION 14: OPTIMIZATION ================= -->
   <div class="card no-print">
     <h2>14. Optimization &amp; discussion checklist</h2>
     <label class="check"><input type="checkbox" id="op_smoking"> Smoking cessation advised</label>
@@ -504,7 +504,6 @@
     <label class="check"><input type="checkbox" id="op_anes"> Discussed with anesthesia / surgeon</label>
   </div>
 
-  <!-- ================= SECTION 15: ASSESSMENT ================= -->
   <div class="card">
     <h2>15. Assessment</h2>
     <div class="actions no-print">
@@ -528,7 +527,7 @@
 </main>
 
 <script>
-/* ---------- PWA install ---------- */
+/* ---------- PWA ---------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch(err => console.error("SW failed:", err));
@@ -569,7 +568,7 @@ function calcBMI() {
   if (bmi > 35) $("sb_bmi").checked = true;
 }
 
-/* ---------- Smoking index ---------- */
+/* ---------- Smoking ---------- */
 function calcSmokingIndex() {
   const status = $("smoking").value;
   const type = $("smokingType").value;
@@ -589,7 +588,24 @@ function calcSmokingIndex() {
   $("packYears").value = py > 0 ? py.toFixed(1) : "";
 }
 
-/* ---------- AROZULLAH ---------- */
+/* ---------- ASA sync ---------- */
+function syncASA() {
+  const asa = $("asaClass").value;
+  const labels = {
+    "1": "ASA I — Normal healthy",
+    "2": "ASA II — Mild systemic disease",
+    "3": "ASA III — Severe systemic disease",
+    "4": "ASA IV — Constant threat to life",
+    "5": "ASA V — Moribund"
+  };
+  const label = labels[asa] || "";
+  if ($("gupta_rf_asa_display")) $("gupta_rf_asa_display").value = label;
+  if ($("gupta_pn_asa_display")) $("gupta_pn_asa_display").value = label;
+  if ($("gupta_rf_risk")) calcGuptaRF();
+  if ($("gupta_pn_risk")) calcGuptaPN();
+}
+
+/* ---------- Arozullah ---------- */
 function calcArozullah() {
   const s = parseInt($("az_surgery").value, 10) || 0;
   const e = parseInt($("az_emergency").value, 10) || 0;
@@ -609,7 +625,7 @@ function calcArozullah() {
   $("az_class").value = `${cls} — ${risk} risk`;
 }
 
-/* ---------- GUPTA RESPIRATORY FAILURE ---------- */
+/* ---------- Gupta RF ---------- */
 function calcGuptaRF() {
   const asaMap = { "1": -3.5265, "2": -2.0008, "3": -0.6201, "4": 0.2441, "5": 0 };
   const sepsisMap = { "none": -0.7840, "sirs": 0, "sepsis": 0.2752, "septic_shock": 0.9035 };
@@ -622,7 +638,7 @@ function calcGuptaRF() {
     "peripheral_vascular": -0.2389, "skin": -0.3206, "spine": -0.5220, "thoracic_non_cardiac": 0.6715,
     "vein": -2.0080, "urology": 0.3093
   };
-  const asa = asaMap[$("gupta_rf_asa").value];
+  const asa = asaMap[$("asaClass").value];
   const sepsis = sepsisMap[$("gupta_rf_sepsis").value];
   const func = funcMap[$("gupta_rf_functional").value];
   const emergency = $("gupta_rf_emergency").value === "1" ? 0 : -0.5739;
@@ -632,7 +648,7 @@ function calcGuptaRF() {
   $("gupta_rf_risk").value = risk.toFixed(2) + "%";
 }
 
-/* ---------- GUPTA PNEUMONIA ---------- */
+/* ---------- Gupta PN ---------- */
 function calcGuptaPN() {
   const asaMap = { "1": -3.0225, "2": -1.6057, "3": -0.4915, "4": 0.0123, "5": 0 };
   const copdMap = { "0": -0.4553, "1": 0 };
@@ -648,7 +664,7 @@ function calcGuptaPN() {
     "vein": -1.4760, "urology": 0.1076
   };
   const age = num("ageYears") || 0;
-  const asa = asaMap[$("gupta_pn_asa").value];
+  const asa = asaMap[$("asaClass").value];
   const copd = copdMap[$("gupta_pn_copd").value];
   const func = funcMap[$("gupta_pn_functional").value];
   const sepsis = sepsisMap[$("gupta_pn_sepsis").value];
@@ -758,16 +774,14 @@ function interpretCXR() {
   return out;
 }
 
-/* ---------- MAIN CALCULATE ---------- */
+/* ---------- Main ---------- */
 function calculate() {
-  /* Run all live calculators first */
   calcBMI();
   calcSmokingIndex();
   calcArozullah();
   calcGuptaRF();
   calcGuptaPN();
 
-  /* ARISCAT */
   const age = intv("ageYears");
   let agePts = 0;
   if (age > 80) agePts = 16;
@@ -783,21 +797,18 @@ function calculate() {
   if (ariscat >= 45) arLabel = "High";
   else if (ariscat >= 26) arLabel = "Intermediate";
 
-  /* STOP-BANG */
   const sb = chk("sb_snoring") + chk("sb_tired") + chk("sb_apnea") + chk("sb_pressure")
            + chk("sb_bmi") + chk("sb_age50") + chk("sb_neck") + chk("sb_male");
   let sbLabel = "Low";
   if (sb >= 5) sbLabel = "High";
   else if (sb >= 3) sbLabel = "Intermediate";
 
-  /* Optional tests */
   const spiro = chk("spiro_notdone") ? null : interpretSpiro();
   const dlco = chk("dlco_notdone") ? null : interpretDLCO();
   const pefr = chk("pefr_notdone") ? null : interpretPEFR();
   const bedside = chk("bedside_notdone") ? [] : interpretBedside();
   const cxr = chk("cxr_notdone") ? [] : interpretCXR();
 
-  /* Recommendation engine (same logic as before) */
   const order = { low: 0, mid: 1, high: 2 };
   let level = "low";
   const raise = l => { if (order[l] > order[level]) level = l; };
@@ -836,7 +847,6 @@ function calculate() {
     high: "High risk — optimize and discuss with anesthesia / surgeon before clearance"
   }[level];
 
-  /* Checklist */
   const checklist = [
     ["op_smoking","Smoking cessation advised"],
     ["op_bronch","Bronchodilator/steroid optimized"],
@@ -848,7 +858,6 @@ function calculate() {
     ["op_anes","Discussed with anesthesia/surgeon"]
   ].filter(([id]) => chk(id)).map(([_, label]) => label);
 
-  /* Build output */
   const pname = $("patient").value || "—";
   const pdate = $("date").value || "—";
   const pprocedure = $("procedure").value || "—";
@@ -856,6 +865,7 @@ function calculate() {
   const pbmi = $("bmi").value || "—";
   const pbmiCat = $("bmiCat").value || "";
   const panes = $("anes").value;
+  const asaLabel = $("gupta_rf_asa_display").value || "—";
   const smokingStatus = $("smoking").value;
   const smokingType = $("smokingType").value;
   const si = $("smokingIndex").value;
@@ -869,9 +879,8 @@ function calculate() {
 
   let html = `<div class="print-title">Preoperative Pulmonary Assessment</div>`;
   html += `<p><strong>Patient:</strong> ${esc(pname)} &nbsp;|&nbsp; <strong>Sex:</strong> ${esc(psex)} &nbsp;|&nbsp; <strong>Age:</strong> ${age || "—"} &nbsp;|&nbsp; <strong>BMI:</strong> ${esc(pbmi)}${pbmiCat ? " (" + esc(pbmiCat) + ")" : ""}</p>`;
-  html += `<p><strong>Date:</strong> ${esc(pdate)} &nbsp;|&nbsp; <strong>Procedure:</strong> ${esc(pprocedure)} &nbsp;|&nbsp; <strong>Anesthesia:</strong> ${esc(panes)}</p>`;
+  html += `<p><strong>ASA:</strong> ${esc(asaLabel)} &nbsp;|&nbsp; <strong>Date:</strong> ${esc(pdate)} &nbsp;|&nbsp; <strong>Procedure:</strong> ${esc(pprocedure)} &nbsp;|&nbsp; <strong>Anesthesia:</strong> ${esc(panes)}</p>`;
 
-  /* Smoking */
   if (smokingStatus !== "never") {
     html += `<h2>Smoking</h2>`;
     const typeLabel = { cigarette: "Cigarette", bidi: "Bidi", mixed: "Mixed", other: "Other" }[smokingType] || "—";
@@ -881,7 +890,6 @@ function calculate() {
     if (py) html += row("Pack-years (est.)", py);
   }
 
-  /* Risk scores */
   html += `<h2>Risk scores</h2>`;
   html += row("ARISCAT", `${ariscat} / 123 — ${arLabel} risk`);
   html += row("STOP-BANG", `${sb} / 8 — ${sbLabel} OSA risk`);
@@ -889,50 +897,31 @@ function calculate() {
   if (guptaRfRisk) html += row("Gupta respiratory failure risk", guptaRfRisk);
   if (guptaPnRisk) html += row("Gupta pneumonia risk", guptaPnRisk);
 
-  /* Optional sections */
-  if (chk("spiro_notdone")) {
-    html += `<h2>Spirometry</h2>`; html += row("Status", "Not performed / not available");
-  } else if (spiro) {
+  if (chk("spiro_notdone")) { html += `<h2>Spirometry</h2>`; html += row("Status", "Not performed / not available"); }
+  else if (spiro) {
     html += `<h2>Spirometry</h2>`;
     const parts = [spiro.pattern]; if (spiro.severity) parts.push(spiro.severity);
     html += row("Pattern", parts.join(" — "));
     if (spiro.reversibility) html += row("Reversibility", spiro.reversibility);
     if (spiro.postInfo) html += row("Post-BD", spiro.postInfo);
   }
-  if (chk("dlco_notdone")) {
-    html += `<h2>DLCO</h2>`; html += row("Status", "Not performed / not available");
-  } else if (dlco) {
-    html += `<h2>DLCO</h2>`; html += row("DLCO % predicted", `${dlco.pct}% — ${dlco.s}`);
-  }
-  if (chk("pefr_notdone")) {
-    html += `<h2>PEFR</h2>`; html += row("Status", "Not performed / not available");
-  } else if (pefr) {
+  if (chk("dlco_notdone")) { html += `<h2>DLCO</h2>`; html += row("Status", "Not performed / not available"); }
+  else if (dlco) { html += `<h2>DLCO</h2>`; html += row("DLCO % predicted", `${dlco.pct}% — ${dlco.s}`); }
+  if (chk("pefr_notdone")) { html += `<h2>PEFR</h2>`; html += row("Status", "Not performed / not available"); }
+  else if (pefr) {
     html += `<h2>PEFR</h2>`;
     if (pefr.best !== null) html += row("Best of 3", `${pefr.best} L/min`);
     if (pefr.avg !== null) html += row("Average", `${pefr.avg} L/min`);
     if (pefr.pctPred !== null) html += row("% predicted", `${pefr.pctPred.toFixed(1)}% — ${pefr.severity}`);
     if (pefr.rev) html += row("Post-BD", pefr.rev);
   }
-  if (chk("bedside_notdone")) {
-    html += `<h2>Bedside findings</h2>`; html += row("Status", "Not assessed");
-  } else if (bedside.length) {
-    html += `<h2>Bedside findings</h2>`;
-    bedside.forEach(n => { html += row("•", n); });
-  }
-  if (chk("cxr_notdone")) {
-    html += `<h2>Chest X-ray</h2>`; html += row("Status", "Not performed / not available");
-  } else if (cxr.length) {
-    html += `<h2>Chest X-ray</h2>`; html += row("Findings", cxr.join("; "));
-  }
+  if (chk("bedside_notdone")) { html += `<h2>Bedside findings</h2>`; html += row("Status", "Not assessed"); }
+  else if (bedside.length) { html += `<h2>Bedside findings</h2>`; bedside.forEach(n => { html += row("•", n); }); }
+  if (chk("cxr_notdone")) { html += `<h2>Chest X-ray</h2>`; html += row("Status", "Not performed / not available"); }
+  else if (cxr.length) { html += `<h2>Chest X-ray</h2>`; html += row("Findings", cxr.join("; ")); }
 
-  if (checklist.length) {
-    html += `<h2>Optimization documented</h2>`;
-    checklist.forEach(c => { html += row("•", c); });
-  }
-  if (concerns.length) {
-    html += `<h2>Key concerns</h2>`;
-    concerns.forEach(c => { html += row("•", c); });
-  }
+  if (checklist.length) { html += `<h2>Optimization documented</h2>`; checklist.forEach(c => { html += row("•", c); }); }
+  if (concerns.length) { html += `<h2>Key concerns</h2>`; concerns.forEach(c => { html += row("•", c); }); }
   html += `<h2>Recommendation</h2>`;
   html += `<p><strong>${esc(category)}</strong></p>`;
   html += `<p class="muted small">Screening / documentation aid only. Final clearance is a clinical decision.</p>`;
@@ -947,11 +936,13 @@ function resetForm() {
   toggleHeight();
   $("az_score").value = ""; $("az_class").value = "";
   $("gupta_rf_risk").value = ""; $("gupta_pn_risk").value = "";
+  syncASA();
   $("output").innerHTML = '<p class="muted">Enter data and tap “Calculate &amp; update”.</p>';
 }
 
 /* init */
 toggleHeight();
+syncASA();
 </script>
 </body>
 </html>
